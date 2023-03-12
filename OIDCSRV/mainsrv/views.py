@@ -10,6 +10,8 @@ max_regtime = 300
 
 #-------------------------------------#
 
+
+
 def encode_md5(s):
     m = hashlib.md5()
     m.update(s.encode(encoding='utf-8'))
