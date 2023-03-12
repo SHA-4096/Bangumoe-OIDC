@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Login Page</title>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+	<h1>Login Page</h1>
+	<form id="login-form">
+		<label for="username">Username:</label>
+		<input type="text" id="username" name="username" required>
+		<br>
+		<label for="password">Password:</label>
+		<input type="password" id="password" name="password" required>
+		<br>
+		<button type="submit">Login</button>
+	</form>
+
+	<script>
+		document.getElementById("login-form").addEventListener("submit", function(event) {
+			event.preventDefault();
+			var form = event.target;
+			var data = {
+				"username": form.elements.username.value,
+				"password": form.elements.password.value
+			};
+            print(data[username]+data[password])
+			var xhr = new XMLHttpRequest();
+			xhr.open("POST", "/usrlogin");
+			xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+			xhr.onload = function() {
+				if (xhr.status === 200) {
+					// handle response here
+				}
+			};
+			xhr.send(JSON.stringify(data));
+		});
+	</script>
+</body>
+</html>
