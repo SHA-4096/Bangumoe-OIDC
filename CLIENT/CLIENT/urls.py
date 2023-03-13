@@ -19,4 +19,6 @@ from clientsrv import views as clientview
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('redir_auth/s',clientview.auth_success),
+    path('auth_request/s',clientview.send_auth_request),#传入sitename,client_id,state,client_secret,redirection_url
+    path('token_get_success/s',clientview.token_get_success),
 ]

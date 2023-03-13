@@ -8,3 +8,6 @@
 实现了对Oauth请求中参数的获取  
 实现了简单的用户授权  
 实现了授权成功后页面的跳转  
+实现了authentication_code,access_token的生成和传递  
+(另：花了不少时间解决django orm的makemigrations的冲突问题）  
+目前client_id由自己手打的http请求处理  
