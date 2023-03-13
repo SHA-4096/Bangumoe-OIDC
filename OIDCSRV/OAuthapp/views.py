@@ -24,15 +24,17 @@ def generate_token(uid,client_id):
     secret_key = '123456'#str(random.randint(10000000000,1000000000000))+str(time.time())
     access_token = jwt.encode(payload, secret_key, algorithm='HS256')
     if res:
-        res.access_token_key = secret_key
+        res.access_token_key = '123456'#secret_key------------------------------后期填坑：存不进去
         res.save()
+        print(res.access_token_key)
     else:
         return 'Failed'
     return access_token
 
-def decode_token(token,secret_key):
+def decode_access_token(token,secret_key):
     '''对access_token解密，返回一个payload列表'''
     payload = jwt.decode(token,secret_key,algorithms=['HS256'])
+    return payload
 
 def usr_auth(table):
     '''应该要做一个网页的，先留个锅;传入的是一个列表,成功的话返回authcode,否则直接提示授权失败'''
@@ -42,10 +44,17 @@ def usr_auth(table):
         usr_name= input("用户名")
         passwd = passwrd_encode(input("密码"))
         res = UserInfo.objects.filter(name = usr_name,password = passwd).first()
+        authcode_to_return = generate_auth_code()
         if res:
-            authcode_to_return = generate_auth_code()
-            tmp = OAuthTable(sitename=table['sitename'],client_id=table['client_id'],client_secret=table['client_secret'],authed_uid = usr_name,auth_code = authcode_to_return,auth_code_expired = 'False')
-            tmp.save()
+            res_chk = OAuthTable.objects.filter(client_id=table['client_id']).first()
+            if res_chk:#已经请求过了就直接更新
+                res_chk.authed_uid=usr_name
+                res_chk.auth_code=authcode_to_return
+                res_chk.auth_code_expired='False'
+                res_chk.save()
+            else:
+                tmp = OAuthTable(sitename=table['sitename'],client_id=table['client_id'],client_secret=table['client_secret'],authed_uid = usr_name,auth_code = authcode_to_return,auth_code_expired = 'False')
+                tmp.save()
             url = table['redirection_url']+"?auth_code="+authcode_to_return
             return url
         else:
@@ -120,5 +129,30 @@ def access_token_request(request):
             res.save()
             url = code_content['redirection_url']+'?access_token='+access_token
             return redirect(url)
-        else:#数据库中没有这个client_id
+        else:#数据库中没有这个auth_code
             return HttpResponse("这个请求非法，因为用户并未授权此client")
+        
+def query_with_access_token(request):
+    '''用户传入hs256加密的code内含client_id,access_token,redirection_url,还传入client_secret'''
+    if request.method == 'GET':
+        code = request.GET['code']
+        client_secret = request.GET['client_secret']
+        code_content = jwt.decode(code,client_secret,algorithms=['HS256'])
+        access_token = code_content['access_token']
+        client_id = code_content['client_id']
+        redirection_url = code_content['redirection_url']
+        res = OAuthTable.objects.filter(client_id=client_id).first()
+        if res:
+            decoded_token = decode_access_token(access_token,'123456')#res.access_token_key)
+            if decoded_token['client_id'] == client_id:#验证token的真实性
+                #decode失败会得到exception（未处理）
+                url = redirection_url
+                return redirect(url,method = 'GET')
+            else:
+                return HttpResponse("这个access token似乎不是这个client申请的")
+        else:
+            return HttpResponse("该client未被授权")
+        
+    else:
+        return HttpResponse("使用GET方法")
+    
