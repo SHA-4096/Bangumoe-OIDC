@@ -43,3 +43,21 @@ def token_get_success(request):
         return HttpResponse("Token="+request.GET['access_token'])
     else:
         HttpResponse("使用GET方法")
+        
+def ID_token_request(request):
+    '''传入access_token,client_id'''
+    if request.method == 'GET':
+        access_token = request.GET['access_token']
+        client_id = request.GET['client_id']
+        client_secret = rand_gen()
+        payload = {
+            'access_token':access_token,
+            'client_id':client_id,
+            'redirection_url':'http://localhost:8080/ID_token_success/s'
+        }
+        code = jwt.encode(payload,client_secret,algorithm='HS256')
+        url = 'http://localhost:8000/query_with_access_token/s?code='+code+'&client_secret='+client_secret+''
+        return redirect(url)
+def ID_token_success(request):
+    return HttpResponse("好耶，成功获得响应！")
+    

@@ -11,3 +11,4 @@
 实现了authentication_code,access_token的生成和传递  
 (另：花了不少时间解决django orm的makemigrations的冲突问题）  
 目前client_id由自己手打的http请求处理  
+成功实现了通过token获取server的响应  
