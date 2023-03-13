@@ -52,7 +52,3 @@ def user_authenticate(request):
             return redirect(res.redirection_url,method = 'GET')
         else:
             return HttpResponse('授权失败！')
-
-def auth_success(request):
-    print("授权成功，这是redirect之后的地址引用的函数")
-    return HttpResponse("这是一个测试用地址")

@@ -1,4 +1,4 @@
-"""OIDCSRV URL Configuration
+"""CLIENT URL Configuration
 
 The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/4.1/topics/http/urls/
@@ -15,15 +15,8 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from mainsrv import views
-from OAuthapp import views as views_Oauth
+from clientsrv import views as clientview
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('usrlogin/',views.usrlogin,name = 'login'),
-    path('usrregister/',views.usrregister,name = 'registration'),
-    path('register-verify/s',views.verify,name = 'verification'),
-    path('get_clientrequest/s',views_Oauth.get_clientrequest,name = 'get_clientrequest'),
-    path('auth/s',views_Oauth.user_authenticate,name = 'userauthenticate'),
-#    path('login/',views.listen),
-#    path('submit/', views.submit_form, name='submit_form'),
+    path('redir_auth/s',clientview.auth_success),
 ]
