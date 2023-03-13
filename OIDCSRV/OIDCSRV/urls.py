@@ -24,7 +24,8 @@ urlpatterns = [
     path('register-verify/s',views.verify,name = 'verification'),
     path('get_clientrequest/s',views_Oauth.get_clientrequest,name = 'get_clientrequest'),
     path('auth/s',views_Oauth.user_authenticate,name = 'userauthenticate'),
-    path('redir_auth/s',views_Oauth.auth_success),
+    path('auth2/s',views_Oauth.user_authenticate2,name = 'userauthenticate2'),#接收HS256加密的code和client_secret
+    path('access_token_request/s',views_Oauth.access_token_request,name = 'access_token_request')#请求access_token:传入HS256加密的code，内含auth_code，redirection_url以及client_id，当然还会传入client_secret
 #    path('login/',views.listen),
 #    path('submit/', views.submit_form, name='submit_form'),
 ]
