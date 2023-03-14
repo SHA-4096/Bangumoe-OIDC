@@ -40,7 +40,7 @@ def send_auth_request(request):
     
 def token_get_success(request):
     if request.method == 'GET':
-        return HttpResponse("Token="+request.GET['access_token'])
+        return HttpResponse("access_oken="+request.GET['access_token']+'\nrefresh_token='+request.GET['refresh_token'])
     else:
         HttpResponse("使用GET方法")
         

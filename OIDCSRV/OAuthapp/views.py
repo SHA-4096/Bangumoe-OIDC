@@ -141,14 +141,17 @@ def access_token_request(request):
         client_secret = request.GET['client_secret']
         code_content = jwt.decode(code,client_secret,algorithms=['HS256'])
         res = OAuthTable.objects.filter(auth_code=code_content['auth_code'],auth_code_expired='False').first()
-        if res:
+        if res:#已经确认auth_code的合法性
             access_token = generate_token(res.authed_uid,res.client_id)
-            res = OAuthTable.objects.filter(auth_code=code_content['auth_code'],auth_code_expired='False').first()#再次查询更新数据，否则access_token_key会变成空值
+            refresh_token = generate_refresh_token(res.authed_uid,res.client_id)
+            #再次查询更新数据，否则access_token_key会变成空值
+            res = OAuthTable.objects.filter(auth_code=code_content['auth_code'],auth_code_expired='False').first()
             if access_token == 'Failed':
                 return HttpResponse("Token未能正确生成")
             res.auth_code_expired='True'
             res.save()
-            url = code_content['redirection_url']+'?access_token='+access_token
+            #明码传access_token和refresh_token(这个如果不行的话后期再加密)
+            url = code_content['redirection_url']+'?access_token='+access_token+'&refresh_token='+refresh_token
             return redirect(url)
         else:#数据库中没有这个auth_code
             return HttpResponse("这个请求非法，因为用户并未授权此client")
