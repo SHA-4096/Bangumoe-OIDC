@@ -99,7 +99,8 @@ def get_clientrequest(request):
         redirection_url = request.GET['redirection_url']
         tmp = OAuthTable(client_id=client_id,client_secret=client_secret,redirection_url=redirection_url,sitename=sitename)
         tmp.save()
-        return redirect('http://localhost:8000/auth/s?client_id='+client_id+'&sitename='+sitename,method = 'GET')
+        url = 'http://localhost:8000/auth2/s?client_id='+client_id+'&sitename='+sitename
+        return redirect(url+'&state='+request.GET['state'],method = 'GET')
 
 def user_authenticate(request):
     if request.method == 'POST':
@@ -107,10 +108,15 @@ def user_authenticate(request):
     else:
         client_id = request.GET['client_id']
         sitename = request.GET['sitename']
-        auth_res = usr_auth(sitename)
+        table = {
+            'client_id':client_id,
+            'sitename':sitename,
+            'redirection_url':request.GET['redirection_url']
+        }
+        auth_res = usr_auth(table)
         if auth_res:
             res = OAuthTable.objects.filter(client_id=client_id).first()
-            return redirect(res.redirection_url,method = 'GET')
+            return redirect(res.redirection_url+'&state='+request.GET['state'],method = 'GET')
         else:
             return HttpResponse('授权失败！')
 
@@ -129,7 +135,7 @@ def user_authenticate2(request):
         if url == 'Failed':
             return HttpResponse("认证失败")    
         else:
-            return redirect(url)
+            return redirect(url+'&state='+request.GET['state'])
     
 
 def access_token_request(request):
@@ -152,7 +158,7 @@ def access_token_request(request):
             res.save()
             #明码传access_token和refresh_token(这个如果不行的话后期再加密)
             url = code_content['redirection_url']+'?access_token='+access_token+'&refresh_token='+refresh_token
-            return redirect(url)
+            return redirect(url+'&state='+request.GET['state'])
         else:#数据库中没有这个auth_code
             return HttpResponse("这个请求非法，因为用户并未授权此client")
         
@@ -171,10 +177,10 @@ def query_with_access_token(request):
             if decoded_access_token['client_id'] == client_id:#验证token的真实性
                 if time.time()>decoded_access_token['expire']:#decode失败会得到exception（未处理）
                     url = redirection_url+'?status=Invalid_token_error_expired'
-                    return redirect(url,method = 'GET')
+                    return redirect(url+'&state='+request.GET['state'],method = 'GET')
                 else:
                     url = redirection_url+'?status=success'
-                    return redirect(url,method = 'GET')
+                    return redirect(url+'&state='+request.GET['state'],method = 'GET')
             else:
                 return HttpResponse("这个access token似乎不是这个client申请的")
         else:
