@@ -23,5 +23,7 @@ urlpatterns = [
     path('token_get_success/s',clientview.token_get_success),
     path('ID_token_request/s',clientview.ID_token_request),
     path('ID_token_responded/s',clientview.ID_token_responded),#成功拿到IDtoken
+    path('refresh_access_token/s',clientview.refresh_access_token),#传入client_id,refresh_token
+    path('access_token_refreshed/s',clientview.access_token_refreshed),#获取到新的access_token之后的处理
     
 ]

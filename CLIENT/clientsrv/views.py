@@ -40,7 +40,7 @@ def send_auth_request(request):
     
 def token_get_success(request):
     if request.method == 'GET':
-        return HttpResponse("access_oken="+request.GET['access_token']+'\nrefresh_token='+request.GET['refresh_token'])
+        return HttpResponse("access_token="+request.GET['access_token']+'\nrefresh_token='+request.GET['refresh_token'])
     else:
         HttpResponse("使用GET方法")
         
@@ -61,4 +61,24 @@ def ID_token_request(request):
 def ID_token_responded(request):
     '''处理id_token请求后的响应'''
     return HttpResponse(request.GET['status'])
-    
+
+def refresh_access_token(request):
+    if request.method == 'GET':
+        '''传入client_id,refresh_token'''
+        redirection_url = 'http://localhost:8080/access_token_refreshed/s'
+        client_id = request.GET['client_id']
+        refresh_token = request.GET['refresh_token']
+        client_secret = rand_gen()
+        payload = {
+            'client_id':client_id,
+        }
+        code = jwt.encode(payload,client_secret,algorithm='HS256')
+        url = 'http://localhost:8000/renew_access_token/s?code='+code+'&redirection_url='+redirection_url+'&refresh_token='+refresh_token+'&client_secret='+client_secret
+        return redirect(url,method='GET')
+    else:
+        return HttpResponse("Use GET")
+def access_token_refreshed(request):
+    if request.method == 'GET':
+        return HttpResponse("New access_token:"+request.GET['access_token'])
+    else:
+        return HttpResponse("Use GET")        
