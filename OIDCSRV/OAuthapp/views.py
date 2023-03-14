@@ -21,10 +21,11 @@ def generate_token(uid,client_id):
         'exp': int(time.time())+exp_time  # 过期时间，以Unix时间戳表示
     }
     res = OAuthTable.objects.filter(client_id = client_id).first()
-    secret_key = '123456'#str(random.randint(10000000000,1000000000000))+str(time.time())
+    secret_key = str(random.randint(10000000,1000000000))+str(time.time())
+    print(res.client_id)
     access_token = jwt.encode(payload, secret_key, algorithm='HS256')
     if res:
-        res.access_token_key = '123456'#secret_key------------------------------后期填坑：存不进去
+        res.access_token_key = secret_key#后期填坑：存不进去||已解决：在主函数里面先进行一次查询操作
         res.save()
         print(res.access_token_key)
     else:
@@ -53,7 +54,7 @@ def usr_auth(table):
                 res_chk.auth_code_expired='False'
                 res_chk.save()
             else:
-                tmp = OAuthTable(sitename=table['sitename'],client_id=table['client_id'],client_secret=table['client_secret'],authed_uid = usr_name,auth_code = authcode_to_return,auth_code_expired = 'False')
+                tmp = OAuthTable(sitename=table['sitename'],client_id=table['client_id'],client_secret=table['client_secret'],authed_uid = usr_name,auth_code = authcode_to_return,auth_code_expired = 'False',access_token_key = '123456')
                 tmp.save()
             url = table['redirection_url']+"?auth_code="+authcode_to_return
             return url
@@ -123,6 +124,7 @@ def access_token_request(request):
         res = OAuthTable.objects.filter(auth_code=code_content['auth_code'],auth_code_expired='False').first()
         if res:
             access_token = generate_token(res.authed_uid,res.client_id)
+            res = OAuthTable.objects.filter(auth_code=code_content['auth_code'],auth_code_expired='False').first()#再次查询更新数据，否则access_token_key会变成空值
             if access_token == 'Failed':
                 return HttpResponse("Token未能正确生成")
             res.auth_code_expired='True'
@@ -143,7 +145,7 @@ def query_with_access_token(request):
         redirection_url = code_content['redirection_url']
         res = OAuthTable.objects.filter(client_id=client_id).first()
         if res:
-            decoded_token = decode_access_token(access_token,'123456')#res.access_token_key)
+            decoded_token = decode_access_token(access_token,res.access_token_key)
             if decoded_token['client_id'] == client_id:#验证token的真实性
                 #decode失败会得到exception（未处理）
                 url = redirection_url
