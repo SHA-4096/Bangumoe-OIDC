@@ -22,17 +22,13 @@ def auth_success(request):
         return HttpResponse("使用GET方法")
     else:
         #HttpResponse("授权成功,正在发送auth_code/="+request.GET['auth_code'])
-        client_secret = str(random)
-        payload = {
-            'auth_code':request.GET['auth_code'],
-            'redirection_url':'http://localhost:8080/token_get_success/s',
-            'client_id':'111222',
-        }
-        client_secret = rand_gen()
+        client_id = '111222'#------------------------后期要自动生成的
         state = state_gen()
         state_tmp = state
-        code = jwt.encode(payload,client_secret,algorithm = 'HS256')
-        url = 'http://localhost:8000/access_token_request/s?code='+code+"&client_secret="+client_secret+'&response_type=code&state='+state
+        auth_code=request.GET['auth_code']
+        redirection_url='http://localhost:8080/'
+#        code = jwt.encode(payload,client_secret,algorithm = 'HS256')
+        url = 'http://localhost:8000/access_token_request/s?'+'&response_type=code&state='+state+'&client_id='+client_id+'&redirection_url='+redirection_url+'&auth_code='+auth_code
         return redirect(url)
 
 def send_auth_request(request):
@@ -43,16 +39,19 @@ def send_auth_request(request):
     else:
         payload = {
             'sitename':request.GET['sitename'],
-            'client_id':request.GET['client_id'],
-            'state':request.GET['state'],
             'client_secret':request.GET['client_secret'],#这个是没用的，以后删掉
-            'redirection_url':'http://localhost:8080/redir_auth/s',
         }
+        token_redir_url = 'http://localhost:8080/token_get_success/s'
         state = state_gen()
         state_tmp = state
         client_secret = rand_gen()
         code = jwt.encode(payload,client_secret,algorithm = 'HS256')
-        return redirect('http://localhost:8000/auth2/s?code='+str(code)+'&client_secret='+str(client_secret)+"&state="+state)#向服务器传code和secret，用hs256加密
+        redirection_url='http://localhost:8080/'
+        client_id = request.GET['client_id']
+        sitename = request.GET['sitename']
+        client_secret=rand_gen()
+        url = 'http://localhost:8000/auth2/s?client_secret='+str(client_secret)+'&redirection_url='+redirection_url+'&client_id='+client_id+'&sitename='+sitename+'&client_secret='+client_secret
+        return redirect(url+"&state="+state)#向服务器传code和secret，用hs256加密
     
 def token_get_success(request):
     global state_tmp
@@ -75,7 +74,7 @@ def ID_token_request(request):
         payload = {
             'access_token':access_token,
             'client_id':client_id,
-            'redirection_url':'http://localhost:8080/ID_token_responded/s'
+            'redirection_url':'http://localhost:8080/'
         }
         code = jwt.encode(payload,client_secret,algorithm='HS256')
         state_tmp = state_gen()
@@ -93,7 +92,7 @@ def refresh_access_token(request):
     global state_tmp
     if request.method == 'GET':
         '''传入client_id,refresh_token'''
-        redirection_url = 'http://localhost:8080/access_token_refreshed/s'
+        redirection_url = 'http://localhost:8080/'
         client_id = request.GET['client_id']
         refresh_token = request.GET['refresh_token']
         client_secret = rand_gen()
@@ -103,10 +102,11 @@ def refresh_access_token(request):
         code = jwt.encode(payload,client_secret,algorithm='HS256')
         state_tmp = state_gen()
         url = 'http://localhost:8000/renew_access_token/s?code='+code+'&redirection_url='+redirection_url+'&refresh_token='+refresh_token+'&client_secret='+client_secret+'&state='+state_tmp
-        return redirect(url,method='GET')
+        return redirect(url+'&state='+state_tmp,method='GET')
     else:
         return HttpResponse("Use GET")
 def access_token_refreshed(request):
+    '''已经废弃'''
     global state_tmp
     if request.method == 'GET':
         if request.GET['state'] != state_tmp:
