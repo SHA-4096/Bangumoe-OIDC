@@ -6,7 +6,7 @@ from mainsrv.models import UserInfo
 import random
 # Create your views here.
 
-exp_time = 6#过期时间
+exp_time = 3600#过期时间
 #---------------------------#
 
 def passwrd_encode(s):
@@ -50,6 +50,28 @@ def generate_refresh_token(uid,client_id):
     else:
         return 'Failed'
     return refresh_token
+
+def generate_ID_token(uid,client_id):
+    '''生成ID_token，返回字段为token和key的字典'''
+    res = UserInfo.objects.filter(name=uid).first()
+    payload = {
+        'iss':'http://localhost:8000/',
+        'sub':uid,
+        'aud_id':client_id,#避免框架直接抛出exception就不叫aud了，expire同
+        'expire':time.time()+exp_time,
+        'iat':time.time(),
+        'email':res.email,
+        'profile':res.profile,
+    }
+    ID_token_key = randgen()
+    ID_token = jwt.encode(payload,ID_token_key,algorithm='HS256')
+    dat = {
+        'token':ID_token,
+        'key':ID_token_key,
+    }
+    return dat
+
+
 
 def decode_access_token(token,secret_key):
     '''对access_token解密，返回一个payload列表'''
@@ -141,7 +163,7 @@ def user_authenticate2(request):
     
 
 def access_token_request(request):
-    '''请求access_token:传入HS256加密的code，内含auth_code，redirection_url以及client_id，当然还会传入client_secret,返回一个access_token和refresh_token,以后验证时需要client_id'''
+    '''请求access_token:传入HS256加密的code，内含auth_code，redirection_url以及client_id，当然还会传入client_secret,返回access_token、ID_token、ID_token_key,iss和refresh_token,以后验证时需要client_id'''
     if request.method == 'POST':
         return HttpResponse("请使用GET方法")
     else:
@@ -149,14 +171,15 @@ def access_token_request(request):
         if res:#已经确认auth_code的合法性(检查了重定向url的真实性)
             access_token = generate_access_token(res.authed_uid,res.client_id)
             refresh_token = generate_refresh_token(res.authed_uid,res.client_id)
+            ID_token_tmp = generate_ID_token(res.authed_uid,res.client_id)
+            iss = 'http://localhost:8000/'
             #再次查询更新数据，否则access_token_key会变成空值
             res = OAuthTable.objects.filter(auth_code=request.GET['auth_code'],auth_code_expired='False').first()
             if access_token == 'Failed':
                 return HttpResponse("Token未能正确生成")
             res.auth_code_expired='True'
             res.save()
-            #明码传access_token和refresh_token(这个如果不行的话后期再加密)
-            url = request.GET['redirection_url']+'token_get_success/s'+'?access_token='+access_token+'&refresh_token='+refresh_token
+            url = request.GET['redirection_url']+'token_get_success/s'+'?access_token='+access_token+'&refresh_token='+refresh_token+'&ID_token='+ID_token_tmp['token']+'&ID_token_key='+ID_token_tmp['key']+'&iss='+iss
             return redirect(url+'&state='+request.GET['state'])
         else:#数据库中没有这个auth_code
             return HttpResponse("这个请求非法，因为用户并未授权此client")
@@ -189,7 +212,7 @@ def query_with_access_token(request):
         return HttpResponse("使用GET方法")
 
 def renew_access_token(request):
-    '''传入HS256加密的code[client_id],以及client_secret,refresh_token,返回一个access_token以及原本的refresh_token'''
+    '''传入HS256加密的code[client_id],以及client_secret,refresh_token,返回access_token、ID_token、ID_token_key,iss以及原本的refresh_token'''
     if request.method == 'GET':
         decoded_code = jwt.decode(request.GET['code'],request.GET['client_secret'],algorithms=['HS256'])
         client_id = decoded_code['client_id']
@@ -200,7 +223,10 @@ def renew_access_token(request):
             decoded_token = jwt.decode(refresh_token,token_key,algorithms=['HS256'])
             if decoded_token['client_id'] == client_id:#确认token有效
                 access_token = generate_access_token(decoded_token['user_id'],decoded_token['client_id'])
-                url = request.GET['redirection_url']+'token_get_success/s'+'?access_token='+access_token+'&refresh_token='+refresh_token
+                refresh_token = generate_refresh_token(res.authed_uid,res.client_id)
+                ID_token_tmp = generate_ID_token(res.authed_uid,res.client_id)
+                iss = 'http://localhost:8000/'
+                url = request.GET['redirection_url']+'token_get_success/s'+'?access_token='+access_token+'&refresh_token='+refresh_token+'&ID_token='+ID_token_tmp['token']+'&ID_token_key='+ID_token_tmp['key']+'iss='+iss
                 return redirect(url+'&state='+request.GET['state'],method = 'GET')
             else:
                 return HttpResponse("这个refresh_token无效")
