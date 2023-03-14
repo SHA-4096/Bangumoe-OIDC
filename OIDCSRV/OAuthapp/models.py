@@ -9,3 +9,4 @@ class OAuthTable(models.Model):
     auth_code = models.CharField(max_length=256)
     auth_code_expired = models.CharField(max_length=256)
     access_token_key = models.CharField(max_length=256)
+    refresh_token_key = models.CharField(max_length=256)
