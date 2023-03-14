@@ -22,7 +22,7 @@ def auth_success(request):
         return HttpResponse("使用GET方法")
     else:
         #HttpResponse("授权成功,正在发送auth_code/="+request.GET['auth_code'])
-        client_id = '111222'#------------------------后期要自动生成的
+        client_id = '111222'#------------------------先给个定值方便调试
         state = state_gen()
         state_tmp = state
         auth_code=request.GET['auth_code']
@@ -41,7 +41,6 @@ def send_auth_request(request):
             'sitename':request.GET['sitename'],
             'client_secret':request.GET['client_secret'],#这个是没用的，以后删掉
         }
-        token_redir_url = 'http://localhost:8080/token_get_success/s'
         state = state_gen()
         state_tmp = state
         client_secret = rand_gen()
@@ -54,13 +53,15 @@ def send_auth_request(request):
         return redirect(url+"&state="+state)#向服务器传code和secret，用hs256加密
     
 def token_get_success(request):
+    '''拿到access_token,refresh_token,ID_token\ID_token_key和iss'''
     global state_tmp
     if request.method == 'GET':
         #先检查state
         if request.GET['state'] != state_tmp:
             return HttpResponse("state不匹配，可能是csrf攻击")
         else:
-            return HttpResponse("access_token="+request.GET['access_token']+'\nrefresh_token='+request.GET['refresh_token'])
+            decoded_ID_token = jwt.decode(request.GET['ID_token'],request.GET['ID_token_key'],algorithms=['HS256'])
+            return HttpResponse("access_token="+request.GET['access_token']+'\nrefresh_token='+request.GET['refresh_token']+'\nID_token='+request.GET['ID_token']+'\nID_token_key='+request.GET['ID_token_key']+'\niss='+request.GET['iss']+'\nDecoded_ID_token='+str(decoded_ID_token))
     else:
         HttpResponse("使用GET方法")
         
@@ -80,6 +81,7 @@ def ID_token_request(request):
         state_tmp = state_gen()
         url = 'http://localhost:8000/query_with_access_token/s?code='+code+'&client_secret='+client_secret+'&state='+state_tmp
         return redirect(url)
+
 def ID_token_responded(request):
     global state_tmp
     '''处理id_token请求后的响应'''
