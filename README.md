@@ -15,4 +15,6 @@
 # Day3
 解决了access_token_key无法储存的问题  
 实现了使用refresh_token更新access_token的功能  
-
+添加了state参数  
+添加了对redirection_url的验证  
+（另：在这之前我的redirection_url都是直接指向client域名下面的某一个地址，直到现在才知道原来redirection_url不应该分那么细）  

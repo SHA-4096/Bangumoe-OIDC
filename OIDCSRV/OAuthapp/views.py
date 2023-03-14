@@ -6,7 +6,7 @@ from mainsrv.models import UserInfo
 import random
 # Create your views here.
 
-exp_time = 600#过期时间
+exp_time = 6#过期时间
 #---------------------------#
 
 def passwrd_encode(s):
@@ -71,11 +71,12 @@ def usr_auth(table):
                 res_chk.authed_uid=usr_name
                 res_chk.auth_code=authcode_to_return
                 res_chk.auth_code_expired='False'
+                res_chk.redirection_url=table['redirection_url']
                 res_chk.save()
             else:
-                tmp = OAuthTable(sitename=table['sitename'],client_id=table['client_id'],client_secret=table['client_secret'],authed_uid = usr_name,auth_code = authcode_to_return,auth_code_expired = 'False',access_token_key = '123456')
+                tmp = OAuthTable(sitename=table['sitename'],client_id=table['client_id'],client_secret=table['client_secret'],authed_uid = usr_name,auth_code = authcode_to_return,auth_code_expired = 'False',access_token_key = '123456',redirection_url=table['redirection_url'])
                 tmp.save()
-            url = table['redirection_url']+"?auth_code="+authcode_to_return
+            url = table['redirection_url']+"redir_auth/s?auth_code="+authcode_to_return
             return url
         else:
             return 'Failed'
@@ -99,7 +100,8 @@ def get_clientrequest(request):
         redirection_url = request.GET['redirection_url']
         tmp = OAuthTable(client_id=client_id,client_secret=client_secret,redirection_url=redirection_url,sitename=sitename)
         tmp.save()
-        return redirect('http://localhost:8000/auth/s?client_id='+client_id+'&sitename='+sitename,method = 'GET')
+        url = redirection_url+'auth2/s?client_id='+client_id+'&sitename='+sitename
+        return redirect(url+'&state='+request.GET['state'],method = 'GET')
 
 def user_authenticate(request):
     if request.method == 'POST':
@@ -107,29 +109,35 @@ def user_authenticate(request):
     else:
         client_id = request.GET['client_id']
         sitename = request.GET['sitename']
-        auth_res = usr_auth(sitename)
+        table = {
+            'client_id':client_id,
+            'sitename':sitename,
+            'redirection_url':request.GET['redirection_url']
+        }
+        auth_res = usr_auth(table)
         if auth_res:
             res = OAuthTable.objects.filter(client_id=client_id).first()
-            return redirect(res.redirection_url,method = 'GET')
+            return redirect(res.redirection_url+'&state='+request.GET['state'],method = 'GET')
         else:
             return HttpResponse('授权失败！')
 
 def user_authenticate2(request):
-    '''读入code,client_secret,返回auth_code'''
+    '''返回auth_code'''
     if request.method == 'POST':
         return HttpResponse("请使用GET方法")
     else:
-        code = request.GET['code']
-        client_secret = request.GET['client_secret']
-        res = jwt.decode(code,client_secret,algorithms=['HS256'])      
-        client_id = res['client_id']
-        sitename = res['sitename']
-        redirection_url = res['redirection_url']
+        res = {
+            'client_id':request.GET['client_id'],
+            'sitename':request.GET['sitename'],
+            'redirection_url':request.GET['redirection_url'],
+            'sitename':request.GET['sitename'],
+            'client_secret':request.GET['client_secret'],
+        }
         url = usr_auth(res)
         if url == 'Failed':
             return HttpResponse("认证失败")    
         else:
-            return redirect(url)
+            return redirect(url+'&state='+request.GET['state'])
     
 
 def access_token_request(request):
@@ -137,22 +145,19 @@ def access_token_request(request):
     if request.method == 'POST':
         return HttpResponse("请使用GET方法")
     else:
-        code = request.GET['code']
-        client_secret = request.GET['client_secret']
-        code_content = jwt.decode(code,client_secret,algorithms=['HS256'])
-        res = OAuthTable.objects.filter(auth_code=code_content['auth_code'],auth_code_expired='False').first()
-        if res:#已经确认auth_code的合法性
+        res = OAuthTable.objects.filter(auth_code=request.GET['auth_code'],auth_code_expired='False',redirection_url=request.GET['redirection_url']).first()
+        if res:#已经确认auth_code的合法性(检查了重定向url的真实性)
             access_token = generate_access_token(res.authed_uid,res.client_id)
             refresh_token = generate_refresh_token(res.authed_uid,res.client_id)
             #再次查询更新数据，否则access_token_key会变成空值
-            res = OAuthTable.objects.filter(auth_code=code_content['auth_code'],auth_code_expired='False').first()
+            res = OAuthTable.objects.filter(auth_code=request.GET['auth_code'],auth_code_expired='False').first()
             if access_token == 'Failed':
                 return HttpResponse("Token未能正确生成")
             res.auth_code_expired='True'
             res.save()
             #明码传access_token和refresh_token(这个如果不行的话后期再加密)
-            url = code_content['redirection_url']+'?access_token='+access_token+'&refresh_token='+refresh_token
-            return redirect(url)
+            url = request.GET['redirection_url']+'token_get_success/s'+'?access_token='+access_token+'&refresh_token='+refresh_token
+            return redirect(url+'&state='+request.GET['state'])
         else:#数据库中没有这个auth_code
             return HttpResponse("这个请求非法，因为用户并未授权此client")
         
@@ -170,11 +175,11 @@ def query_with_access_token(request):
             decoded_access_token = decode_access_token(access_token,res.access_token_key)
             if decoded_access_token['client_id'] == client_id:#验证token的真实性
                 if time.time()>decoded_access_token['expire']:#decode失败会得到exception（未处理）
-                    url = redirection_url+'?status=Invalid_token_error_expired'
-                    return redirect(url,method = 'GET')
+                    url = redirection_url+'ID_token_responded/s'+'?status=Invalid_token_error_expired'
+                    return redirect(url+'&state='+request.GET['state'],method = 'GET')
                 else:
-                    url = redirection_url+'?status=success'
-                    return redirect(url,method = 'GET')
+                    url = redirection_url+'ID_token_responded/s'+'?status=success'
+                    return redirect(url+'&state='+request.GET['state'],method = 'GET')
             else:
                 return HttpResponse("这个access token似乎不是这个client申请的")
         else:
@@ -184,7 +189,7 @@ def query_with_access_token(request):
         return HttpResponse("使用GET方法")
 
 def renew_access_token(request):
-    '''传入HS256加密的code[client_id],以及client_secret,refresh_token,返回一个access_token'''
+    '''传入HS256加密的code[client_id],以及client_secret,refresh_token,返回一个access_token以及原本的refresh_token'''
     if request.method == 'GET':
         decoded_code = jwt.decode(request.GET['code'],request.GET['client_secret'],algorithms=['HS256'])
         client_id = decoded_code['client_id']
@@ -195,8 +200,8 @@ def renew_access_token(request):
             decoded_token = jwt.decode(refresh_token,token_key,algorithms=['HS256'])
             if decoded_token['client_id'] == client_id:#确认token有效
                 access_token = generate_access_token(decoded_token['user_id'],decoded_token['client_id'])
-                url = request.GET['redirection_url']+'?access_token='+access_token
-                return redirect(url,method = 'GET')
+                url = request.GET['redirection_url']+'token_get_success/s'+'?access_token='+access_token+'&refresh_token='+refresh_token
+                return redirect(url+'&state='+request.GET['state'],method = 'GET')
             else:
                 return HttpResponse("这个refresh_token无效")
         else:
