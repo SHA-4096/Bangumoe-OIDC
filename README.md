@@ -12,3 +12,4 @@
 (另：花了不少时间解决django orm的makemigrations的冲突问题）  
 目前client_id由自己手打的http请求处理  
 成功实现了通过token获取server的响应  
+解决了access_token_key无法储存的问题  

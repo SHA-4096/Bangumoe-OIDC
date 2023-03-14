@@ -53,11 +53,12 @@ def ID_token_request(request):
         payload = {
             'access_token':access_token,
             'client_id':client_id,
-            'redirection_url':'http://localhost:8080/ID_token_success/s'
+            'redirection_url':'http://localhost:8080/ID_token_responded/s'
         }
         code = jwt.encode(payload,client_secret,algorithm='HS256')
         url = 'http://localhost:8000/query_with_access_token/s?code='+code+'&client_secret='+client_secret+''
         return redirect(url)
-def ID_token_success(request):
-    return HttpResponse("好耶，成功获得响应！")
+def ID_token_responded(request):
+    '''处理id_token请求后的响应'''
+    return HttpResponse(request.GET['status'])
     

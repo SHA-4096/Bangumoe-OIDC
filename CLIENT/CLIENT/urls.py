@@ -22,6 +22,6 @@ urlpatterns = [
     path('auth_request/s',clientview.send_auth_request),#传入sitename,client_id,state,client_secret,redirection_url
     path('token_get_success/s',clientview.token_get_success),
     path('ID_token_request/s',clientview.ID_token_request),
-    path('ID_token_success/s',clientview.ID_token_success),#成功拿到IDtoken
+    path('ID_token_responded/s',clientview.ID_token_responded),#成功拿到IDtoken
     
 ]
