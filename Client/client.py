@@ -19,7 +19,7 @@ while True:
     else:
         url = 'http://localhost:8000/usrregister/'
         name = input("用户名:")
-        password = input("密码:")
+        password = str(input("密码:"))
         email = input("电子邮箱：")
         image = input("头像链接：")
         nickname = input("昵称：")

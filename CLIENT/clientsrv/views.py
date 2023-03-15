@@ -26,10 +26,10 @@ def auth_success(request):
         state = state_gen()
         state_tmp = state
         auth_code=request.GET['auth_code']
-#==========================在这里可以修改scopes=====================================
+#==========================在这里可以修改scopes====================================
         redirection_url='http://localhost:8080/'
 #        code = jwt.encode(payload,client_secret,algorithm = 'HS256')
-        url = 'http://localhost:8000/access_token_request/s?'+'&response_type=code&state='+state+'&client_id='+client_id+'&redirection_url='+redirection_url+'&auth_code='+auth_code+'&scopes=openid%20profile'
+        url = 'http://localhost:8000/access_token_request/s?'+'state='+state+'&client_id='+client_id+'&redirection_url='+redirection_url+'&auth_code='+auth_code+'&scopes=openid%20profile'
         return redirect(url)
 
 def send_auth_request(request):
@@ -49,7 +49,8 @@ def send_auth_request(request):
         client_id = request.GET['client_id']
         sitename = request.GET['sitename']
         client_secret=rand_gen()
-        url = 'http://localhost:8000/auth2/s?client_secret='+str(client_secret)+'&redirection_url='+redirection_url+'&client_id='+client_id+'&sitename='+sitename+'&client_secret='+client_secret
+#===========================这里修改response_type=========================
+        url = 'http://localhost:8000/auth2/s?client_secret='+str(client_secret)+'&response_type='+'code'+'&redirection_url='+redirection_url+'&client_id='+client_id+'&sitename='+sitename+'&client_secret='+client_secret
         return redirect(url+"&state="+state)#向服务器传code和secret，用hs256加密
     
 def token_get_success(request):
