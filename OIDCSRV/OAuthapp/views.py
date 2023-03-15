@@ -4,6 +4,7 @@ import time
 from OAuthapp.models import OAuthTable
 from mainsrv.models import UserInfo
 import random
+import re
 # Create your views here.
 
 exp_time = 3600#过期时间
@@ -51,17 +52,29 @@ def generate_refresh_token(uid,client_id):
         return 'Failed'
     return refresh_token
 
-def generate_ID_token(uid,client_id):
+def generate_ID_token(uid,client_id,scopes):
     '''生成ID_token，返回字段为token和key的字典'''
     res = UserInfo.objects.filter(name=uid).first()
+    email = ' '
+    profile = ' '
+    if not re.findall(pattern='openid',string=scopes):
+        dat = {
+            'token':'None',
+            'key':'None',
+        }
+        return dat
+    if re.findall(pattern='email',string=scopes):
+        email = res.email
+    if re.findall(pattern='profile',string=scopes):
+        profile = res.profile
     payload = {
         'iss':'http://localhost:8000/',
         'sub':uid,
         'aud_id':client_id,#避免框架直接抛出exception就不叫aud了，expire同
         'expire':time.time()+exp_time,
         'iat':time.time(),
-        'email':res.email,
-        'profile':res.profile,
+        'email':email,
+        'profile':profile,
     }
     ID_token_key = randgen()
     ID_token = jwt.encode(payload,ID_token_key,algorithm='HS256')
@@ -163,15 +176,16 @@ def user_authenticate2(request):
     
 
 def access_token_request(request):
-    '''请求access_token:传入HS256加密的code，内含auth_code，redirection_url以及client_id，当然还会传入client_secret,返回access_token、ID_token、ID_token_key,iss和refresh_token,以后验证时需要client_id'''
+    '''请求access_token:auth_code，redirection_url以及client_id，scopes，返回access_token、ID_token、ID_token_key,iss和refresh_token,以后验证时需要client_id'''
     if request.method == 'POST':
         return HttpResponse("请使用GET方法")
     else:
         res = OAuthTable.objects.filter(auth_code=request.GET['auth_code'],auth_code_expired='False',redirection_url=request.GET['redirection_url']).first()
+        scopes = request.GET['scopes']
         if res:#已经确认auth_code的合法性(检查了重定向url的真实性)
             access_token = generate_access_token(res.authed_uid,res.client_id)
             refresh_token = generate_refresh_token(res.authed_uid,res.client_id)
-            ID_token_tmp = generate_ID_token(res.authed_uid,res.client_id)
+            ID_token_tmp = generate_ID_token(res.authed_uid,res.client_id,scopes)
             iss = 'http://localhost:8000/'
             #再次查询更新数据，否则access_token_key会变成空值
             res = OAuthTable.objects.filter(auth_code=request.GET['auth_code'],auth_code_expired='False').first()
