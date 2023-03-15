@@ -18,6 +18,12 @@ def encode_md5(s):
     res = m.hexdigest()
     return res
 
+
+def password_encode(s):
+    '''密码存储的加密'''
+    return encode_md5(s)
+
+
 def send_code(s,email):
     #以后再接入API
     print(s)
@@ -42,7 +48,7 @@ def usrlogin(request):
     if(request.method == 'POST'):
         name = request.POST['name']
         password = request.POST['password']
-        res = UserInfo.objects.filter(name=name,password=password).first()
+        res = UserInfo.objects.filter(name=name,password=password_encode(password)).first()
         if(res):
             if res.usrverified == 'True':
                 txt = "欢迎"+str(request.POST['name'])+'\n你的信息如下：'+"\n邮箱"+res.email+"\n头像链接"+res.image+"\n个人简介"+res.profile            
@@ -68,7 +74,7 @@ def usrregister(request):
         if(res):
             return HttpResponse("和现有用户重名了！")
         else:
-            tmp = UserInfo(name = name,password = password,email=email,nickname=nickname,profile=profile,image=image,usrverified="False",reg_time=time.time())
+            tmp = UserInfo(name = name,password = password_encode(password),email=email,nickname=nickname,profile=profile,image=image,usrverified="False",reg_time=time.time())
             lnk = 'http://localhost:8000/register-verify/s?code='+encode_md5(name)+encode_md5(nickname)+'&name='+name+"\n请在"+str(int(max_regtime/60))+"min内完成认证"
             send_code(lnk,email)
             tmp.save()
