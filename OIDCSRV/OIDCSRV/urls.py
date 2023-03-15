@@ -17,6 +17,7 @@ from django.contrib import admin
 from django.urls import path
 from mainsrv import views
 from OAuthapp import views as views_Oauth
+from Anime_Collection import views as views_Anime
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('usrlogin/',views.usrlogin,name = 'login'),
@@ -29,6 +30,10 @@ urlpatterns = [
     path('query_with_access_token/s',views_Oauth.query_with_access_token),#用户传入HS256加密的code[client_id,access_token]，还有client_secret，返回一个加密后的串以及secret_key
     path('renew_access_token/s',views_Oauth.renew_access_token),#传入HS256加密的code[client_id],以及client_secret,refresh_token,redirection_url,返回一个access_token
     path('.well-known/openid-configuration',views_Oauth.doc_show),#文档说明
-#    path('login/',views.listen),
-#    path('submit/', views.submit_form, name='submit_form'),
+    path('anime/collect_anime/s',views_Anime.collect_anime),#(POST方法)收藏番剧，传入user_id,anime_name,episode_num,director,collection_type,rating,comment
+    path('anime/modify_collection/s',views_Anime.modify_collection),#POST方法，传跟collect_anime同样的参数
+    path('anime/delete_collection/s',views_Anime.delete_collection),#GET方法，传入user_id,anime_name
+    path('anime/search_collection/s',views_Anime.search_collection),#GET方法，传入user_id,anime_name
+    path('anime/view_collections/s',views_Anime.view_collections),#GET方法，传入user_id,返回用户的所有收藏的列表
+    path('anime/collection_data/s',views_Anime.collection_data),#GET方法，传入user_id和anime_name，显示番剧详细信息
 ]
