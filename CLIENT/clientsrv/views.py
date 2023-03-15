@@ -30,7 +30,7 @@ def auth_success(request):
         redirection_url='http://localhost:8080/'
 #        code = jwt.encode(payload,client_secret,algorithm = 'HS256')
         url = 'http://localhost:8000/access_token_request/s?'+'state='+state+'&client_id='+client_id+'&redirection_url='+redirection_url+'&auth_code='+auth_code+'&scopes=openid%20profile'
-        return redirect(url)
+        return redirect(url,permanent=True)
 
 def send_auth_request(request):
     '''请求一个auth_code'''
@@ -51,7 +51,7 @@ def send_auth_request(request):
         client_secret=rand_gen()
 #===========================这里修改response_type=========================
         url = 'http://localhost:8000/auth2/s?client_secret='+str(client_secret)+'&response_type='+'code'+'&redirection_url='+redirection_url+'&client_id='+client_id+'&sitename='+sitename+'&client_secret='+client_secret
-        return redirect(url+"&state="+state)#向服务器传code和secret，用hs256加密
+        return redirect(url+"&state="+state,permanent=True)#向服务器传code和secret，用hs256加密
     
 def token_get_success(request):
     '''拿到access_token,refresh_token,ID_token\ID_token_key和iss'''
@@ -85,7 +85,7 @@ def ID_token_request(request):
         code = jwt.encode(payload,client_secret,algorithm='HS256')
         state_tmp = state_gen()
         url = 'http://localhost:8000/query_with_access_token/s?code='+code+'&client_secret='+client_secret+'&state='+state_tmp
-        return redirect(url)
+        return redirect(url,permanent=True)
 
 def ID_token_responded(request):
     global state_tmp
@@ -109,7 +109,7 @@ def refresh_access_token(request):
         code = jwt.encode(payload,client_secret,algorithm='HS256')
         state_tmp = state_gen()
         url = 'http://localhost:8000/renew_access_token/s?code='+code+'&redirection_url='+redirection_url+'&refresh_token='+refresh_token+'&client_secret='+client_secret+'&state='+state_tmp
-        return redirect(url+'&state='+state_tmp,method='GET')
+        return redirect(url+'&state='+state_tmp,method='GET',permanent=True)
     else:
         return HttpResponse("Use GET")
 def access_token_refreshed(request):

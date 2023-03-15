@@ -145,7 +145,7 @@ def get_clientrequest(request):
         tmp = OAuthTable(client_id=client_id,client_secret=client_secret,redirection_url=redirection_url,sitename=sitename)
         tmp.save()
         url = redirection_url+'auth2/s?client_id='+client_id+'&sitename='+sitename
-        return redirect(url+'&state='+request.GET['state'],method = 'GET')
+        return redirect(url+'&state='+request.GET['state'],method = 'GET',permanent=True)
 
 def user_authenticate(request):
     if request.method == 'POST':
@@ -161,7 +161,9 @@ def user_authenticate(request):
         auth_res = usr_auth(table)
         if auth_res:
             res = OAuthTable.objects.filter(client_id=client_id).first()
-            return redirect(res.redirection_url+'&state='+request.GET['state'],method = 'GET')
+            red = redirect(res.redirection_url+'&state='+request.GET['state'],method = 'GET',permanent=True)
+            red.status_code = 404
+            return red
         else:
             return HttpResponse('授权失败！')
 
@@ -182,7 +184,7 @@ def user_authenticate2(request):
             if url == 'Failed':
                 return HttpResponse("认证失败")    
             else:
-                return redirect(url+'&state='+request.GET['state'])
+                return redirect(url+'&state='+request.GET['state'],permanent=True)
         else:
             return HttpResponse('目前只支持code授权方式请求')
     
@@ -206,7 +208,7 @@ def access_token_request(request):
             res.auth_code_expired='True'
             res.save()
             url = request.GET['redirection_url']+'token_get_success/s'+'?access_token='+access_token+'&refresh_token='+refresh_token+'&ID_token='+ID_token_tmp['token']+'&ID_token_key='+ID_token_tmp['key']+'&iss='+iss
-            return redirect(url+'&state='+request.GET['state'])
+            return redirect(url+'&state='+request.GET['state'],permanent=True)
         else:#数据库中没有这个auth_code
             return HttpResponse("这个请求非法，因为用户并未授权此client")
         
@@ -225,15 +227,14 @@ def query_with_access_token(request):
             if decoded_access_token['client_id'] == client_id:#验证token的真实性
                 if time.time()>decoded_access_token['expire']:#decode失败会得到exception（未处理）
                     url = redirection_url+'ID_token_responded/s'+'?status=Invalid_token_error_expired'
-                    return redirect(url+'&state='+request.GET['state'],method = 'GET')
+                    return redirect(url+'&state='+request.GET['state'],method = 'GET',permanent=True)
                 else:
                     url = redirection_url+'ID_token_responded/s'+'?status=success'
-                    return redirect(url+'&state='+request.GET['state'],method = 'GET')
+                    return redirect(url+'&state='+request.GET['state'],method = 'GET',permanent=True)
             else:
                 return HttpResponse("这个access token似乎不是这个client申请的")
         else:
             return HttpResponse("该client未被授权")
-        
     else:
         return HttpResponse("使用GET方法")
 
@@ -253,7 +254,7 @@ def renew_access_token(request):
                 ID_token_tmp = generate_ID_token(res.authed_uid,res.client_id)
                 iss = 'http://localhost:8000/'
                 url = request.GET['redirection_url']+'token_get_success/s'+'?access_token='+access_token+'&refresh_token='+refresh_token+'&ID_token='+ID_token_tmp['token']+'&ID_token_key='+ID_token_tmp['key']+'iss='+iss
-                return redirect(url+'&state='+request.GET['state'],method = 'GET')
+                return redirect(url+'&state='+request.GET['state'],method = 'GET',permanent=True)
             else:
                 return HttpResponse("这个refresh_token无效")
         else:
