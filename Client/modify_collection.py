@@ -2,8 +2,9 @@ import requests
 
 data = {
     'user_id':'11111',
+    'client_id':'111222',
     'anime_name':'测试anime',
-    'episode_num':'111222333',
+    'episode_num':'111222333444',
     'director':'director',
     'collection_type':'收藏',
     'rating':'114514',

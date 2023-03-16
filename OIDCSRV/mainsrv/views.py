@@ -48,20 +48,42 @@ def usrlogin(request):
     if(request.method == 'POST'):
         name = request.POST['name']
         password = request.POST['password']
+        client_id = request.POST['client_id']
         res = UserInfo.objects.filter(name=name,password=password_encode(password)).first()
         if(res):
-            if res.usrverified == 'True':
+            if res.usrverified == 'True':#用户已经完成认证
+                res.is_online = 'True'
+                res.online_client_id = client_id
+                res.save()#保存登录状态
                 txt = "欢迎"+str(request.POST['name'])+'\n你的信息如下：'+"\n邮箱"+res.email+"\n头像链接"+res.image+"\n个人简介"+res.profile            
                 return HttpResponse(txt)
             else:
-                checkusr(res,1)
+                checkusr(res,1)#如果验证码过期了就删掉数据库对应数据
                 return HttpResponse("用户名或密码错误！")
         else:
             return HttpResponse("用户名或密码错误！")
     else:
-        return HttpResponse("还不会写HTML呢！可以先用client.py跑一下哦！")
+        return HttpResponse("使用POST方法")
     
+
+def usrlogout(request):
+    if request.method == 'POST':
+        data = {
+            'name':request.POST['name'],
+            'client_id':request.POST['client_id'],
+        }
+        res = UserInfo.objects.filter(name=data['name'],online_client_id=data['client_id'],is_online='True').first()
+        if res:#用户确实登入了
+            res.is_online = 'False',
+            res.online_client_id = str(time.time()),
+            res.save()
+            return HttpResponse("登出成功")
+        else:
+            return HttpResponse("这个请求非法，可能是已经登出或者没有登录")
+    else:
+        return HttpResponse("使用POST方法")
     
+
 def usrregister(request):
     if(request.method == 'POST'):
         name = request.POST['name']
@@ -98,3 +120,18 @@ def verify(request):
                 return HttpResponse("这个链接无效！")
         else:
             return HttpResponse("这个链接无效！")
+
+def check_online_state(request):
+    '''GET方法，验证这个client是否登入了相应的用户，传入client_id和name，返回一个Httpresponse，其为True或False(字符串)'''
+    if request.method == 'GET':
+        data = {
+            'name':request.GET['name'],
+            'client_id':request.GET['client_id'],
+        }
+        res = UserInfo.objects.filter(name=data['name'],online_client_id=data['client_id'],is_online='True').first()
+        if res:
+            return HttpResponse('True')
+        else:
+            return HttpResponse('False')
+    else:
+        return HttpResponse("请使用GET方法访问")
