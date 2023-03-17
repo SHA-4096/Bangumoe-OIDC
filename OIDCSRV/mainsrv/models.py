@@ -7,7 +7,7 @@ class UserInfo(models.Model):
     email = models.CharField(max_length=64)
     nickname=models.CharField(max_length=64)
     profile=models.CharField(max_length=256)
-    image=models.CharField(max_length=256)
+    image=models.TextField()
     usrverified=models.CharField(max_length=16)
     reg_time=models.CharField(max_length=128)
     is_online=models.CharField(max_length=16)

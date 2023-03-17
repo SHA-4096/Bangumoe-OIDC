@@ -55,7 +55,7 @@ def usrlogin(request):
                 res.is_online = 'True'
                 res.online_client_id = client_id
                 res.save()#保存登录状态
-                txt = "欢迎"+str(request.POST['name'])+'\n你的信息如下：'+"\n邮箱"+res.email+"\n头像链接"+res.image+"\n个人简介"+res.profile            
+                txt = "欢迎"+str(request.POST['name'])+'<br>你的信息如下：'+"<br>邮箱"+res.email+"<br>头像<img src="+res.image+' alt=（头像似乎走丢了）>'+"<br>个人简介"+res.profile            
                 return HttpResponse(txt)
             else:
                 checkusr(res,1)#如果验证码过期了就删掉数据库对应数据

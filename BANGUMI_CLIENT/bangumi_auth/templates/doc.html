@@ -1,0 +1,45 @@
+
+ <!-- <form action="https://www.baidu.com" method="GET"> -->
+	<form action="https://localhost:8100/search/s" method="POST">
+        <!-- <form action="https://www.baidu.com" > -->
+    
+        <!-- label 标签用来显示一些提示信息 -->
+        <label>帐号:</label>
+        <input type="text" name="account" placeholder="请输入帐号">
+        <label>密码:</label>
+        <input type="password" name="passwd" placeholder="请输入密码">
+        <hr>
+        <!-- 单选框 -->
+        <label>性别:</label>
+        <input type="radio" name="gender" value="1">男
+        <input type="radio" name="gender" value="0">女
+        <hr>
+        <!-- 多选框 -->
+        <label>爱好:</label>
+        <input type="checkbox" name="hobby" value="1">抽烟
+        <input type="checkbox" name="hobby" value="2">喝酒
+        <input type="checkbox" name="hobby" value="3">烫头
+        <hr>
+        <!-- 下拉框 -->
+        <label>地址:</label>
+        <select name="address">
+            <!-- 下拉选项要使用 option 标签实现 -->
+            <option value="1">北京</option>
+            <option value="2">上海</option>
+            <option value="3">广州</option>
+            <option value="4">深圳</option>
+        </select>
+        <hr>
+        <!-- 文件上传 -->
+        <label>照片:</label>
+        <input type="file" name="photo">
+        <hr>
+        <label>自我介绍:</label>
+        <textarea name="description" placeholder="500字以内"></textarea>
+        <hr>
+        <!-- 提交和重置按钮 -->
+        <input type="submit" value="OK">
+        <input type="reset" value="Cancel">
+        <input type="button" value="无聊的按钮">
+    </form>
+    

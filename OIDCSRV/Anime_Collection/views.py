@@ -1,5 +1,5 @@
 from django.shortcuts import render,HttpResponse,redirect
-from Anime_Collection.models import AnimeCollectionData
+from Anime_Collection.models import AnimeCollectionData,AnimeDetailedData
 import requests
 # Create your views here.
 
@@ -39,6 +39,40 @@ def collect_anime(request):
             return HttpResponse("用户认证失败，是不是没有登录？")
     else:
         return HttpResponse("请使用POST方法")
+
+def collect_anime_deail_sync(request):
+    if request.method == 'POST':
+        data = {
+            'user_id':request.POST['user_id'],
+            'client_id':request.POST['client_id'],
+            'anime_name':request.POST['anime_name'],
+            'episode_num':request.POST['episode_num'],
+            'director':request.POST['director'],
+            'collection_type':request.POST['collection_type'],
+            'rating':request.POST['rating'],
+            'comment':request.POST['comment'],
+        }
+        if usr_check(data['user_id'],data['client_id']):
+            res = AnimeDetailedData.objects.filter(user_id=data['user_id'],anime_name=data['anime_name'],episode_num=data['episode_num']).first()
+            #先检查是否已经收藏
+            if res:
+                    res.director=data['director']
+                    res.collection_type=data['collection_type']
+                    res.rating=data['rating']
+                    res.comment=data['comment']
+                    res.save()
+                    return HttpResponse("数据已经更新！")
+            else:
+                tmp = AnimeDetailedData(user_id=data['user_id'],anime_name=data['anime_name'],\
+                    episode_num=data['episode_num'],director=data['director'],\
+                        collection_type=data['collection_type'],rating=data['rating'],comment=data['comment'])
+                tmp.save()
+                return HttpResponse("收藏成功")
+        else:
+            return HttpResponse("用户认证失败，是不是没有登录？")
+    else:
+        return HttpResponse("请使用POST方法")
+
 
 def modify_collection(request):
     if request.method == 'POST':
@@ -97,19 +131,23 @@ def search_collection(request):
             'anime_name':request.GET['anime_name'],
         }
         if usr_check(data['user_id'],data['client_id']):
-            res = AnimeCollectionData.objects.filter(user_id=data['user_id'],anime_name__iregex='.*'+data['anime_name']+'.*').first()
+            res = AnimeCollectionData.objects.filter(user_id=data['user_id'],anime_name__iregex='.*'+data['anime_name']+'.*')
             if res:
                 #详情页url
-                url = 'http://localhost:8000/anime/collection_data/s?user_id='+res.user_id+'&anime_name='+res.anime_name+'&client_id='+data['client_id']
                 result = []
-                result.append({
-                    'anime_name':res.anime_name,
-                    'url':url,
-                })
+                text = '查找结果如下<br>'
+                for i in res:
+                    tmp = {
+                        'anime_name':i.anime_name,
+                        #详情页url
+                        'url':'http://localhost:8000/anime/collection_data/s?user_id='+i.user_id+'&anime_name='+i.anime_name+'&client_id='+data['client_id']
+                    }
+                    text += '<a href='+tmp['url']+'>'+tmp['anime_name']+'</a><br>'
+                    result.append(tmp)
                 context = {
                     'result':result
                 }
-                return HttpResponse(str(context))
+                return HttpResponse(text)
             else:
                 return HttpResponse("搜索无结果")
         else:
@@ -118,7 +156,7 @@ def search_collection(request):
         return HttpResponse("请使用GET方法")
     
 def view_collections(request):
-    '''context字典中返回一个result列表，其中元素为有anime_name和url的字典'''
+    '''context字典中返回一个result列表，其中元素为有anime_name和url的字典(为了方便demo直接返一个text)'''
     if request.method == 'GET':
         data = {
             'user_id':request.GET['user_id'],
@@ -127,17 +165,19 @@ def view_collections(request):
         if usr_check(data['user_id'],data['client_id']):
             res = AnimeCollectionData.objects.filter(user_id=data['user_id'])
             result = []
+            text = '收藏如下<br>'
             for i in res:
                 tmp = {
                     'anime_name':i.anime_name,
                     #详情页url
                     'url':'http://localhost:8000/anime/collection_data/s?user_id='+i.user_id+'&anime_name='+i.anime_name+'&client_id='+data['client_id']
                 }
+                text += '<a href='+tmp['url']+'>'+tmp['anime_name']+'</a><br>'
                 result.append(tmp)
             context={
                 'result':result
             }
-            return HttpResponse(str(context))
+            return HttpResponse(text)
     #        return render(request,'all_collections.html',context=context)#后续做个网页链接的生成
         else:
             return HttpResponse("用户认证失败，是不是没有登录？") 
@@ -145,7 +185,7 @@ def view_collections(request):
         return HttpResponse("请使用GET方法")
 
 def collection_data(request):
-    '''返回一个context字典，内含有番剧的数据'''
+    '''返回一个context，内含有番剧的数据'''
     if request.method == 'GET':
         data = {
             'user_id':request.GET['user_id'],

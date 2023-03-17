@@ -23,7 +23,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('usrlogin/',views.usrlogin,name = 'login'),#POST方法，传入name、password、client_id(其实传输也应该要加密但是现在还没做)
     path('usrlogout/s',views.usrlogout,name = 'logout'),#POST方法，传入name(即user_id)、client_id
-    path('usrregister/',views.usrregister,name = 'registration'),
+    path('usrregister/',views.usrregister,name = 'registration'),#POST方法，传入name,password,email,nickname,profile,image
     path('register-verify/s',views.verify,name = 'verification'),#邮件验证
     path('check_online_state/s',views.check_online_state),#GET方法，验证这个client是否登入了相应的用户，传入client_id和name，返回一个Httpresponse，其为True或False(字符串)
     #OIDC相关
@@ -36,9 +36,10 @@ urlpatterns = [
     path('.well-known/openid-configuration',views_Oauth.doc_show),#文档说明
     #番剧收藏相关
     path('anime/collect_anime/s',views_Anime.collect_anime),#(POST方法)收藏番剧，传入user_id,client_id,anime_name,episode_num,director,collection_type,rating,comment
+    path('anime/collect_anime_detail_sync/s',views_Anime.collect_anime_deail_sync),#POST方法，和上面一样的参数，用来获取Bangrumi上面的单个观看状态
     path('anime/modify_collection/s',views_Anime.modify_collection),#POST方法，传跟collect_anime同样的参数
     path('anime/delete_collection/s',views_Anime.delete_collection),#GET方法，传入user_id,client_id,anime_name
     path('anime/search_collection/s',views_Anime.search_collection),#GET方法，传入user_id,client_id,anime_name
     path('anime/view_collections/s',views_Anime.view_collections),#GET方法，传入user_id,client_id,返回用户的所有收藏的列表
     path('anime/collection_data/s',views_Anime.collection_data),#GET方法，传入user_id,client_id和anime_name，显示番剧详细信息
-]
+]   
