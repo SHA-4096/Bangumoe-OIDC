@@ -135,3 +135,4 @@ def check_online_state(request):
             return HttpResponse('False')
     else:
         return HttpResponse("请使用GET方法访问")
+    

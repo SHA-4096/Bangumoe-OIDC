@@ -34,4 +34,6 @@ urlpatterns = [
     path('bangumoe/login/s',auth_views.bangumoe_login),
     path('bangumoe/logout/s',auth_views.bangumoe_logout),
     path('bangumoe/usrregister/s',auth_views.bangumoe_register),
+    path('bangumoe/add_friend/',auth_views.add_friend),#POST,传入friend_id
+    path('bangumoe/check_dataflow/',auth_views.check_dataflow),#POST不传入参数
 ]

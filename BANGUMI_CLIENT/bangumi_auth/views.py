@@ -27,6 +27,7 @@ tokens = {
     'user_id':'776529',
 }
 
+#一些工具方法
 
 def rand_gen():
     return str(random.randint(100000000000,10000000000000))+str(time.time())
@@ -62,7 +63,30 @@ def sync_collection(list):
             'rating':'not_supported_yet',#i['subject']['rating'],
             'comment':'not_supported_yet',#i['subject']['rating'],
         }
-        print(requests.post(url,data=data).text)
+        anime_url = i['subject']['url']
+        res = requests.post(url,data=data).text
+        print(res)
+        if res == '收藏成功':
+            text = '你的好友'+data['user_id']+'收藏了<a href='+anime_url+' >'+data['anime_name']+'这部剧</a>'
+            send_data(text)
+    return
+
+def send_data(content):
+    '''发送信息给所有好友'''
+    data = {
+        'user_id':user_id_bangumoe,
+        'client_id':client_id_bangumoe,
+        'content':content,
+    }
+    url = 'http://localhost:8000/anime/send_dataflow/'
+    http = urllib3.PoolManager()
+    r = http.request('POST',url=url,fields=data)
+    res = r.data.decode('utf-8')
+    print(res)
+    return
+    
+
+#授权相关
 
 def refresh_access_token(request):
     state_global = state_gen()
@@ -223,6 +247,9 @@ def bangumoe_add_collection(request):
         http = urllib3.PoolManager()
         r = http.request('POST',url=url,fields=data)
         res = r.data.decode('utf-8')
+        if res == '收藏成功':
+            text = '你的好友'+data['user_id']+'收藏了'+data['anime_name']+'这部剧'
+            send_data(text)
         return HttpResponse(res)
     else:
         return HttpResponse("使用GET方法")
@@ -306,6 +333,38 @@ def bangumoe_register(request):
         r = http.request('POST',url = url,fields=data)
         res = r.data.decode('utf-8')
         return HttpResponse(res+'<br><a href = http://localhost:8100/mainpage/>回到主页</a>')
+    else:
+        return HttpResponse("使用POST方法")
+
+#好友相关
+def add_friend(request):
+    '''POST,传入friend_id'''
+    if request.method == 'POST':
+        url = 'http://localhost:8000/anime/add_friend/'
+        data = {
+            'user_id':user_id_bangumoe,
+            'client_id':client_id_bangumoe,
+            'friend_id':request.POST['friend_id'],
+        }
+        http = urllib3.PoolManager()
+        r = http.request('POST',url=url,fields=data)
+        res = r.data.decode("utf-8")
+        return HttpResponse(res)
+    else:
+        return HttpResponse("使用POST方法")
+
+def check_dataflow(request):
+    '''POST'''
+    if request.method == 'POST':
+        url = 'http://localhost:8000/anime/check_dataflow/'
+        data = {
+            'user_id':user_id_bangumoe,
+            'client_id':client_id_bangumoe,
+        }
+        http = urllib3.PoolManager()
+        r = http.request('POST',url=url,fields=data)
+        res = r.data.decode("utf-8")
+        return HttpResponse(res)
     else:
         return HttpResponse("使用POST方法")
 

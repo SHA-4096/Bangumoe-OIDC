@@ -19,4 +19,13 @@ class AnimeDetailedData(models.Model):
     collection_type = models.CharField(max_length=256)
     rating = models.CharField(max_length=256)
     comment = models.TextField()
-    
+
+class Friends(models.Model):
+    user_id = models.CharField(max_length=256)
+    friend_id = models.CharField(max_length=256)
+
+class FriendDataFlow(models.Model):
+    pushed = models.CharField(max_length=16)
+    content = models.TextField()
+    user_id = models.CharField(max_length=256)
+    friend_id = models.CharField(max_length=256)

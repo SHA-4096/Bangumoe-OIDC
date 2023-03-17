@@ -42,4 +42,7 @@ urlpatterns = [
     path('anime/search_collection/s',views_Anime.search_collection),#GET方法，传入user_id,client_id,anime_name
     path('anime/view_collections/s',views_Anime.view_collections),#GET方法，传入user_id,client_id,返回用户的所有收藏的列表
     path('anime/collection_data/s',views_Anime.collection_data),#GET方法，传入user_id,client_id和anime_name，显示番剧详细信息
+    path('anime/add_friend/',views_Anime.add_friend),#POST,添加好友，传入user_id,client_id,friend_id
+    path('anime/send_dataflow/',views_Anime.send_dataflow),#POST,发消息给用户，传入content,user_id,client_id
+    path('anime/check_dataflow/',views_Anime.check_dataflow),#POST,检查信息,传入user_id,client_id,返回一个text
 ]   

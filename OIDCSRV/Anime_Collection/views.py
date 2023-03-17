@@ -1,5 +1,6 @@
 from django.shortcuts import render,HttpResponse,redirect
-from Anime_Collection.models import AnimeCollectionData,AnimeDetailedData
+from Anime_Collection.models import AnimeCollectionData,AnimeDetailedData,Friends,FriendDataFlow
+from mainsrv.models import UserInfo
 import requests
 # Create your views here.
 
@@ -207,3 +208,75 @@ def collection_data(request):
             return HttpResponse("用户认证失败，是不是没有登录？")
     else:
         return HttpResponse("请使用GET方法")
+
+
+def add_friend(request):
+    '''POST,传入user_id,client_id,friend_id'''
+    if request.method == 'POST':
+        data = {
+            'user_id':request.POST['user_id'],
+            'friend_id':request.POST['friend_id'],
+            'client_id':request.POST['client_id'],
+        }
+        res = UserInfo.objects.filter(name=data['friend_id']).first()
+        if res:
+            if usr_check(data['user_id'],data['client_id']):
+                res = Friends.objects.filter(user_id=data['user_id'],friend_id=data['friend_id']).first()
+                if data['user_id'] == data['friend_id']:
+                    return HttpResponse("你不能加自己为好友！") 
+                if res:
+                    return HttpResponse("你们已经是好友了哦！")
+                else:
+                    tmp = Friends(user_id=data['user_id'],friend_id=data['friend_id'])
+                    tmp.save()
+                    tmp = Friends(user_id=data['friend_id'],friend_id=data['user_id'])
+                    tmp.save()
+                    return HttpResponse("互相加好友成功")
+            else:
+                return HttpResponse("用户认证失败，是不是没有登录？")
+        else:
+            return HttpResponse("您查找的用户不存在！")
+    else:
+        return HttpResponse("使用POST方法")
+
+def send_dataflow(request):
+    '''POST,传入content,user_id,client_id'''
+    if request.method == 'POST':
+        data = {
+            'content':request.POST['content'],
+            'user_id':request.POST['user_id'],
+            'client_id':request.POST['client_id'],
+        }
+        if usr_check(data['user_id'],data['client_id']):
+            res = Friends.objects.filter(user_id=data['user_id'])
+            for i in res:
+                tmp = FriendDataFlow(pushed='False',content=data['content'],user_id=data['user_id'],friend_id=i.friend_id)
+                tmp.save()
+            return HttpResponse("信息已经全部发送给好友")
+        else:
+            return HttpResponse("用户认证失败，是不是没有登录？")
+    else:
+        return HttpResponse("使用POST方法")
+
+def check_dataflow(request):
+    '''POST,传入user_id,client_id,返回一个text'''
+    if request.method == 'POST':
+        data = {
+            'user_id':request.POST['user_id'],
+            'client_id':request.POST['client_id'],
+        }
+        if usr_check(data['user_id'],data['client_id']):
+            text = '您的好友动态如下：<br>'
+            res = FriendDataFlow.objects.filter(friend_id=data['user_id'])
+            for i in res:
+                if i.pushed == 'False':
+                    text += '(新)'
+                text += i.content
+                i.pushed = 'True'
+                i.save()
+                text+='<br>'
+            return HttpResponse(text)
+        else:
+            return HttpResponse("用户认证失败，是不是没有登录？")
+    else:
+        return HttpResponse("使用POST方法")
