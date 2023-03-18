@@ -9,7 +9,7 @@ import json
 import hashlib
 # Create your views here.
 
-exp_time = 3600#过期时间
+exp_time = 10#过期时间
 #---------------------------#
 
 def encode_md5(s):
@@ -145,7 +145,7 @@ def get_clientrequest(request):
         tmp = OAuthTable(client_id=client_id,client_secret=client_secret,redirection_url=redirection_url,sitename=sitename)
         tmp.save()
         url = redirection_url+'auth2/s?client_id='+client_id+'&sitename='+sitename
-        return redirect(url+'&state='+request.GET['state'],method = 'GET',permanent=True)
+        return redirect(url+'&state='+request.GET['state'],method = 'GET')
 
 def user_authenticate(request):
     if request.method == 'POST':
@@ -161,7 +161,7 @@ def user_authenticate(request):
         auth_res = usr_auth(table)
         if auth_res:
             res = OAuthTable.objects.filter(client_id=client_id).first()
-            red = redirect(res.redirection_url+'&state='+request.GET['state'],method = 'GET',permanent=True)
+            red = redirect(res.redirection_url+'&state='+request.GET['state'],method = 'GET')
             red.status_code = 404
             return red
         else:
@@ -184,7 +184,7 @@ def user_authenticate2(request):
             if url == 'Failed':
                 return HttpResponse("认证失败")    
             else:
-                return redirect(url+'&state='+request.GET['state'],permanent=True)
+                return redirect(url+'&state='+request.GET['state'])
         else:
             return HttpResponse('目前只支持code授权方式请求')
     
@@ -208,12 +208,12 @@ def access_token_request(request):
             res.auth_code_expired='True'
             res.save()
             url = request.GET['redirection_url']+'token_get_success/s'+'?access_token='+access_token+'&refresh_token='+refresh_token+'&ID_token='+ID_token_tmp['token']+'&ID_token_key='+ID_token_tmp['key']+'&iss='+iss
-            return redirect(url+'&state='+request.GET['state'],permanent=True)
+            return redirect(url+'&state='+request.GET['state'])
         else:#数据库中没有这个auth_code
             return HttpResponse("这个请求非法，因为用户并未授权此client")
         
 def query_with_access_token(request):
-    '''用户传入hs256加密的code内含client_id,access_token,redirection_url,还传入client_secret'''
+    '''用户传入client_id,access_token,redirection_url,还传入client_secret'''
     if request.method == 'GET':
         code = request.GET['code']
         client_secret = request.GET['client_secret']
@@ -227,10 +227,10 @@ def query_with_access_token(request):
             if decoded_access_token['client_id'] == client_id:#验证token的真实性
                 if time.time()>decoded_access_token['expire']:#decode失败会得到exception（未处理）
                     url = redirection_url+'ID_token_responded/s'+'?status=Invalid_token_error_expired'
-                    return redirect(url+'&state='+request.GET['state'],method = 'GET',permanent=True)
+                    return redirect(url+'&state='+request.GET['state'],method = 'GET')
                 else:
                     url = redirection_url+'ID_token_responded/s'+'?status=success'
-                    return redirect(url+'&state='+request.GET['state'],method = 'GET',permanent=True)
+                    return redirect(url+'&state='+request.GET['state'],method = 'GET')
             else:
                 return HttpResponse("这个access token似乎不是这个client申请的")
         else:
@@ -244,6 +244,7 @@ def renew_access_token(request):
         decoded_code = jwt.decode(request.GET['code'],request.GET['client_secret'],algorithms=['HS256'])
         client_id = decoded_code['client_id']
         refresh_token = request.GET['refresh_token']
+        scopes = request.GET['scopes']
         res = OAuthTable.objects.filter(client_id=client_id).first()
         if res:
             token_key = res.refresh_token_key
@@ -251,10 +252,10 @@ def renew_access_token(request):
             if decoded_token['client_id'] == client_id:#确认token有效
                 access_token = generate_access_token(decoded_token['user_id'],decoded_token['client_id'])
                 refresh_token = generate_refresh_token(res.authed_uid,res.client_id)
-                ID_token_tmp = generate_ID_token(res.authed_uid,res.client_id)
+                ID_token_tmp = generate_ID_token(res.authed_uid,res.client_id,scopes)
                 iss = 'http://localhost:8000/'
-                url = request.GET['redirection_url']+'token_get_success/s'+'?access_token='+access_token+'&refresh_token='+refresh_token+'&ID_token='+ID_token_tmp['token']+'&ID_token_key='+ID_token_tmp['key']+'iss='+iss
-                return redirect(url+'&state='+request.GET['state'],method = 'GET',permanent=True)
+                url = request.GET['redirection_url']+'token_get_success/s'+'?access_token='+access_token+'&refresh_token='+refresh_token+'&ID_token='+ID_token_tmp['token']+'&ID_token_key='+ID_token_tmp['key']+'&iss='+iss
+                return redirect(url+'&state='+request.GET['state'],method = 'GET')
             else:
                 return HttpResponse("这个refresh_token无效")
         else:

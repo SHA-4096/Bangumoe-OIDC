@@ -30,7 +30,7 @@ def auth_success(request):
         redirection_url='http://localhost:8080/'
 #        code = jwt.encode(payload,client_secret,algorithm = 'HS256')
         url = 'http://localhost:8000/access_token_request/s?'+'state='+state+'&client_id='+client_id+'&redirection_url='+redirection_url+'&auth_code='+auth_code+'&scopes=openid%20profile'
-        return redirect(url,permanent=True)
+        return redirect(url)
 
 def send_auth_request(request):
     '''请求一个auth_code'''
@@ -51,7 +51,7 @@ def send_auth_request(request):
         client_secret=rand_gen()
 #===========================这里修改response_type=========================
         url = 'http://localhost:8000/auth2/s?client_secret='+str(client_secret)+'&response_type='+'code'+'&redirection_url='+redirection_url+'&client_id='+client_id+'&sitename='+sitename+'&client_secret='+client_secret
-        return redirect(url+"&state="+state,permanent=True)#向服务器传code和secret，用hs256加密
+        return redirect(url+"&state="+state)#向服务器传code和secret，用hs256加密
     
 def token_get_success(request):
     '''拿到access_token,refresh_token,ID_token\ID_token_key和iss'''
@@ -66,7 +66,11 @@ def token_get_success(request):
                 pass
             else:
                 decoded_ID_token = jwt.decode(request.GET['ID_token'],request.GET['ID_token_key'],algorithms=['HS256'])
-            return HttpResponse("access_token="+request.GET['access_token']+'\nrefresh_token='+request.GET['refresh_token']+'\nID_token='+request.GET['ID_token']+'\nID_token_key='+request.GET['ID_token_key']+'\niss='+request.GET['iss']+'\nDecoded_ID_token='+str(decoded_ID_token))
+                text = "access_token="+request.GET['access_token']+'<br>refresh_token='+request.GET['refresh_token']+'<br>ID_token='+request.GET['ID_token']+'<br>ID_token_key='+request.GET['ID_token_key']+'<br>iss='+request.GET['iss']+'<br>Decoded_ID_token='+str(decoded_ID_token)
+                text += "<br><a href=http://localhost:8080/ID_token_request/s?client_id=111222&access_token="+ request.GET['access_token'] +'>用access_token访问数据</a><br>'
+                text += "<a href=http://localhost:8080/refresh_access_token/s?client_id=111222&scopes=openid%20profile%20email&refresh_token="+request.GET['refresh_token']+'>获取新的access_token</a>'
+                
+            return HttpResponse(text)
     else:
         HttpResponse("使用GET方法")
         
@@ -85,7 +89,7 @@ def ID_token_request(request):
         code = jwt.encode(payload,client_secret,algorithm='HS256')
         state_tmp = state_gen()
         url = 'http://localhost:8000/query_with_access_token/s?code='+code+'&client_secret='+client_secret+'&state='+state_tmp
-        return redirect(url,permanent=True)
+        return redirect(url)
 
 def ID_token_responded(request):
     global state_tmp
@@ -98,18 +102,19 @@ def ID_token_responded(request):
 def refresh_access_token(request):
     global state_tmp
     if request.method == 'GET':
-        '''传入client_id,refresh_token'''
+        '''传入client_id,refresh_token,scopes'''
         redirection_url = 'http://localhost:8080/'
         client_id = request.GET['client_id']
         refresh_token = request.GET['refresh_token']
         client_secret = rand_gen()
+        scopes = request.GET['scopes']
         payload = {
             'client_id':client_id,
         }
         code = jwt.encode(payload,client_secret,algorithm='HS256')
         state_tmp = state_gen()
-        url = 'http://localhost:8000/renew_access_token/s?code='+code+'&redirection_url='+redirection_url+'&refresh_token='+refresh_token+'&client_secret='+client_secret+'&state='+state_tmp
-        return redirect(url+'&state='+state_tmp,method='GET',permanent=True)
+        url = 'http://localhost:8000/renew_access_token/s?code='+code+'&scopes='+scopes+'&redirection_url='+redirection_url+'&refresh_token='+refresh_token+'&client_secret='+client_secret
+        return redirect(url+'&state='+state_tmp,method='GET')
     else:
         return HttpResponse("Use GET")
 def access_token_refreshed(request):

@@ -24,6 +24,7 @@ urlpatterns = [
     path('usrlogin/',views.usrlogin,name = 'login'),#POST方法，传入name、password、client_id(其实传输也应该要加密但是现在还没做)
     path('usrlogout/s',views.usrlogout,name = 'logout'),#POST方法，传入name(即user_id)、client_id
     path('usrregister/',views.usrregister,name = 'registration'),#POST方法，传入name,password,email,nickname,profile,image
+    path('usrmodify/',views.usrmodify),#POST方法，传入name,password,email,nickname,profile,image
     path('register-verify/s',views.verify,name = 'verification'),#邮件验证
     path('check_online_state/s',views.check_online_state),#GET方法，验证这个client是否登入了相应的用户，传入client_id和name，返回一个Httpresponse，其为True或False(字符串)
     #OIDC相关

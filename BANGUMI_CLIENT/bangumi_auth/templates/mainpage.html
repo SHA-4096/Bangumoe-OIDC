@@ -41,6 +41,27 @@
     <input type='text' name="image" placehoder="..."><br>
     <input type='submit' value="注册">
 </form>
+<br>
+<form action="/bangumoe/usrmodify/" method="POST">
+    <label>用户信息修改（密码默认为AAA，其它信息不填的话就是空的（不是很懂html的form qwq））</label><br>
+    <label>用户名</label>
+    <input type='text' name="name" placehoder="..."><br>
+    <label>密码</label>
+    <input type='password' name="password" value='AAA'><br>
+    <label>确认密码</label>
+    <input type='password' name="password_confirm" value='AAA'><br>
+    <label>邮箱</label>
+    <input type='text' name="email" placehoder="..."><br>
+    <label>昵称</label>
+    <input type='text' name="nickname" placehoder="..."><br>
+    <label>个人介绍</label>
+    <input type='textarea' name="profile" placehoder="..."><br>
+    <label>头像链接</label>
+    <input type='text' name="image" placehoder="..."><br>
+    <input type='submit' value="确定">
+</form>
+
+
 
 <br>
 <a href='http://localhost:8100/get_collection/'>同步数据</a>

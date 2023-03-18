@@ -336,6 +336,30 @@ def bangumoe_register(request):
     else:
         return HttpResponse("使用POST方法")
 
+def bangumoe_modify(request):
+    if request.method == 'POST':
+        data = {
+            'name':request.POST['name'],
+            'password':request.POST['password'],
+            'password_confirm':request.POST['password_confirm'],
+            'email':request.POST['email'],
+            'nickname':request.POST['nickname'],
+            'profile':request.POST['profile'],
+            'image':request.POST['image'],
+            'client_id':client_id_bangumoe,
+        }
+        print(data['password'])
+        if data['password'] != data['password_confirm']:
+            return HttpResponse("两次输入密码不同"+'<br><a href = http://localhost:8100/mainpage/>回到主页</a>')
+        http = urllib3.PoolManager()
+        url = 'http://localhost:8000/usrmodify/'
+        r = http.request('POST',url = url,fields=data)
+        res = r.data.decode('utf-8')
+        return HttpResponse(res+'<br><a href = http://localhost:8100/mainpage/>回到主页</a>')
+    else:
+        return HttpResponse("使用POST方法")
+
+
 #好友相关
 def add_friend(request):
     '''POST,传入friend_id'''

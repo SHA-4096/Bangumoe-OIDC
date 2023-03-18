@@ -77,7 +77,7 @@ def usrlogout(request):
             res.is_online = 'False',
             res.online_client_id = str(time.time()),
             res.save()
-            return HttpResponse("登出成功")
+            return HttpResponse(data['name']+"登出成功")
         else:
             return HttpResponse("这个请求非法，可能是已经登出或者没有登录")
     else:
@@ -102,8 +102,44 @@ def usrregister(request):
             tmp.save()
             return HttpResponse("请去邮箱查收邮件，点击链接之后便可以完成注册"+"\n请在"+str(int(max_regtime/60))+"min内完成认证")
     else:
-        return HttpResponse("还不会写HTML呢！可以先用client.py跑一下哦！")
-    
+        return HttpResponse("使用POST方法")
+
+def usrmodify(request):
+    if(request.method == 'POST'):
+        data = {
+            'name':request.POST['name'],
+            'client_id':request.POST['client_id'],
+        }
+        res = UserInfo.objects.filter(name=data['name'],online_client_id=data['client_id'],is_online='True').first()
+        if res:#用户确实登入了
+            name = request.POST['name']
+            password = request.POST['password']
+            email = request.POST['email']
+            nickname = request.POST['nickname']
+            profile = request.POST['profile']
+            image = request.POST['image']
+            res = UserInfo.objects.filter(name=name).first()
+            if res:
+                if res.password != 'AAA':
+                    res.password = password_encode(password)
+                if res.email != '...':
+                    res.email = email
+                if res.nickname != '...':
+                    res.nickname = nickname
+                if res.profile != '...':
+                    res.profile = profile
+                if res.image != '...':
+                    res.image = image
+                res.save()
+                return HttpResponse("修改信息成功")
+            else:
+                return HttpResponse("没有这个用户！")
+        else:
+            return HttpResponse("这个请求非法，可能是已经登出或者没有登录")
+        
+    else:
+        return HttpResponse("使用POST方法")
+
 def verify(request):
     if request.method == 'POST':
         return HttpResponse("请使用GET方法访问")
