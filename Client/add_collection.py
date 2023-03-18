@@ -8,7 +8,7 @@ data = {
     'director':'director',
     'collection_type':'收藏',
     'rating':'100',
-    'comment':'这是一条关于猪猪掉进青年园池子里的comment',
+    'comment':'something',
 }
 url = 'http://localhost:8000/anime/collect_anime/s'
 print(requests.post(url,data).text)
