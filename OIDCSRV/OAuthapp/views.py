@@ -4,14 +4,24 @@ import time
 from OAuthapp.models import OAuthTable
 from mainsrv.models import UserInfo
 import random
+import re
+import json
+import hashlib
 # Create your views here.
 
-exp_time = 3600#过期时间
+exp_time = 10#过期时间
 #---------------------------#
 
-def passwrd_encode(s):
-    '''填坑：密码存储的加密'''
-    return s
+def encode_md5(s):
+    m = hashlib.md5()
+    m.update(s.encode(encoding='utf-8'))
+    res = m.hexdigest()
+    return res
+
+
+def password_encode(s):
+    '''密码存储的加密'''
+    return encode_md5(s)
 
 def randgen():
     return str(random.randint(10000000,1000000000))+str(time.time())
@@ -51,17 +61,29 @@ def generate_refresh_token(uid,client_id):
         return 'Failed'
     return refresh_token
 
-def generate_ID_token(uid,client_id):
+def generate_ID_token(uid,client_id,scopes):
     '''生成ID_token，返回字段为token和key的字典'''
     res = UserInfo.objects.filter(name=uid).first()
+    email = ' '
+    profile = ' '
+    if not re.findall(pattern='openid',string=scopes):
+        dat = {
+            'token':'None',
+            'key':'None',
+        }
+        return dat
+    if re.findall(pattern='email',string=scopes):
+        email = res.email
+    if re.findall(pattern='profile',string=scopes):
+        profile = res.profile
     payload = {
         'iss':'http://localhost:8000/',
         'sub':uid,
         'aud_id':client_id,#避免框架直接抛出exception就不叫aud了，expire同
         'expire':time.time()+exp_time,
         'iat':time.time(),
-        'email':res.email,
-        'profile':res.profile,
+        'email':email,
+        'profile':profile,
     }
     ID_token_key = randgen()
     ID_token = jwt.encode(payload,ID_token_key,algorithm='HS256')
@@ -84,8 +106,8 @@ def usr_auth(table):
     t = input('是否授权来自'+table['sitename']+"的请求？y/n")
     if(t == 'y'):
         usr_name= input("用户名")
-        passwd = passwrd_encode(input("密码"))
-        res = UserInfo.objects.filter(name = usr_name,password = passwd).first()
+        passwd = str(input("密码"))
+        res = UserInfo.objects.filter(name = usr_name,password = password_encode(passwd)).first()
         authcode_to_return = generate_auth_code()
         if res:
             res_chk = OAuthTable.objects.filter(client_id=table['client_id']).first()
@@ -139,7 +161,9 @@ def user_authenticate(request):
         auth_res = usr_auth(table)
         if auth_res:
             res = OAuthTable.objects.filter(client_id=client_id).first()
-            return redirect(res.redirection_url+'&state='+request.GET['state'],method = 'GET')
+            red = redirect(res.redirection_url+'&state='+request.GET['state'],method = 'GET')
+            red.status_code = 404
+            return red
         else:
             return HttpResponse('授权失败！')
 
@@ -148,30 +172,34 @@ def user_authenticate2(request):
     if request.method == 'POST':
         return HttpResponse("请使用GET方法")
     else:
-        res = {
-            'client_id':request.GET['client_id'],
-            'sitename':request.GET['sitename'],
-            'redirection_url':request.GET['redirection_url'],
-            'sitename':request.GET['sitename'],
-            'client_secret':request.GET['client_secret'],
-        }
-        url = usr_auth(res)
-        if url == 'Failed':
-            return HttpResponse("认证失败")    
+        if request.GET['response_type'] == 'code':
+            res = {
+                'client_id':request.GET['client_id'],
+                'sitename':request.GET['sitename'],
+                'redirection_url':request.GET['redirection_url'],
+                'sitename':request.GET['sitename'],
+                'client_secret':request.GET['client_secret'],
+            }
+            url = usr_auth(res)
+            if url == 'Failed':
+                return HttpResponse("认证失败")    
+            else:
+                return redirect(url+'&state='+request.GET['state'])
         else:
-            return redirect(url+'&state='+request.GET['state'])
+            return HttpResponse('目前只支持code授权方式请求')
     
 
 def access_token_request(request):
-    '''请求access_token:传入HS256加密的code，内含auth_code，redirection_url以及client_id，当然还会传入client_secret,返回access_token、ID_token、ID_token_key,iss和refresh_token,以后验证时需要client_id'''
+    '''请求access_token:auth_code，redirection_url以及client_id，scopes，返回access_token、ID_token、ID_token_key,iss和refresh_token,以后验证时需要client_id'''
     if request.method == 'POST':
         return HttpResponse("请使用GET方法")
     else:
         res = OAuthTable.objects.filter(auth_code=request.GET['auth_code'],auth_code_expired='False',redirection_url=request.GET['redirection_url']).first()
+        scopes = request.GET['scopes']
         if res:#已经确认auth_code的合法性(检查了重定向url的真实性)
             access_token = generate_access_token(res.authed_uid,res.client_id)
             refresh_token = generate_refresh_token(res.authed_uid,res.client_id)
-            ID_token_tmp = generate_ID_token(res.authed_uid,res.client_id)
+            ID_token_tmp = generate_ID_token(res.authed_uid,res.client_id,scopes)
             iss = 'http://localhost:8000/'
             #再次查询更新数据，否则access_token_key会变成空值
             res = OAuthTable.objects.filter(auth_code=request.GET['auth_code'],auth_code_expired='False').first()
@@ -185,7 +213,7 @@ def access_token_request(request):
             return HttpResponse("这个请求非法，因为用户并未授权此client")
         
 def query_with_access_token(request):
-    '''用户传入hs256加密的code内含client_id,access_token,redirection_url,还传入client_secret'''
+    '''用户传入client_id,access_token,redirection_url,还传入client_secret'''
     if request.method == 'GET':
         code = request.GET['code']
         client_secret = request.GET['client_secret']
@@ -207,7 +235,6 @@ def query_with_access_token(request):
                 return HttpResponse("这个access token似乎不是这个client申请的")
         else:
             return HttpResponse("该client未被授权")
-        
     else:
         return HttpResponse("使用GET方法")
 
@@ -217,6 +244,7 @@ def renew_access_token(request):
         decoded_code = jwt.decode(request.GET['code'],request.GET['client_secret'],algorithms=['HS256'])
         client_id = decoded_code['client_id']
         refresh_token = request.GET['refresh_token']
+        scopes = request.GET['scopes']
         res = OAuthTable.objects.filter(client_id=client_id).first()
         if res:
             token_key = res.refresh_token_key
@@ -224,9 +252,9 @@ def renew_access_token(request):
             if decoded_token['client_id'] == client_id:#确认token有效
                 access_token = generate_access_token(decoded_token['user_id'],decoded_token['client_id'])
                 refresh_token = generate_refresh_token(res.authed_uid,res.client_id)
-                ID_token_tmp = generate_ID_token(res.authed_uid,res.client_id)
+                ID_token_tmp = generate_ID_token(res.authed_uid,res.client_id,scopes)
                 iss = 'http://localhost:8000/'
-                url = request.GET['redirection_url']+'token_get_success/s'+'?access_token='+access_token+'&refresh_token='+refresh_token+'&ID_token='+ID_token_tmp['token']+'&ID_token_key='+ID_token_tmp['key']+'iss='+iss
+                url = request.GET['redirection_url']+'token_get_success/s'+'?access_token='+access_token+'&refresh_token='+refresh_token+'&ID_token='+ID_token_tmp['token']+'&ID_token_key='+ID_token_tmp['key']+'&iss='+iss
                 return redirect(url+'&state='+request.GET['state'],method = 'GET')
             else:
                 return HttpResponse("这个refresh_token无效")
@@ -234,3 +262,35 @@ def renew_access_token(request):
             return HttpResponse('token无效：找不到对应的client_id')
     else:
         return HttpResponse("使用GET方法")
+
+
+def doc_show(request):
+    global doc_data
+    return HttpResponse(json.dumps(doc_data))
+
+#=======================以下是对接口的说明===================
+doc_data = {
+ "issuer": "http://localhost:8000/",
+ "authorization_endpoint": "http://localhost:8000/auth2/s",
+ "token_endpoint": "http://localhost:8000/access_token_request/s",
+ "userinfo_endpoint": "http://localhost:8000/query_with_access_token/s",
+ "refresh_token_endpoint":"http://localhost:8000/renew_access_token/s",
+ "response_types_supported": [
+  "code",
+ ],
+ "id_token_signing_alg_values_supported": [
+  "RS256"
+ ],
+ "scopes_supported": [
+  "openid",
+  "email",
+  "profile"
+ ],
+ "claims_supported": [
+  "暂时没有做access_token请求数据的功能"
+ ],
+ "grant_types_supported": [
+  "authorization_code",
+  "refresh_token",
+ ]
+}

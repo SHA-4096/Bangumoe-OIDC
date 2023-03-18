@@ -26,9 +26,10 @@ def auth_success(request):
         state = state_gen()
         state_tmp = state
         auth_code=request.GET['auth_code']
+#==========================在这里可以修改scopes====================================
         redirection_url='http://localhost:8080/'
 #        code = jwt.encode(payload,client_secret,algorithm = 'HS256')
-        url = 'http://localhost:8000/access_token_request/s?'+'&response_type=code&state='+state+'&client_id='+client_id+'&redirection_url='+redirection_url+'&auth_code='+auth_code
+        url = 'http://localhost:8000/access_token_request/s?'+'state='+state+'&client_id='+client_id+'&redirection_url='+redirection_url+'&auth_code='+auth_code+'&scopes=openid%20profile'
         return redirect(url)
 
 def send_auth_request(request):
@@ -44,12 +45,12 @@ def send_auth_request(request):
         state = state_gen()
         state_tmp = state
         client_secret = rand_gen()
-        code = jwt.encode(payload,client_secret,algorithm = 'HS256')
         redirection_url='http://localhost:8080/'
         client_id = request.GET['client_id']
         sitename = request.GET['sitename']
         client_secret=rand_gen()
-        url = 'http://localhost:8000/auth2/s?client_secret='+str(client_secret)+'&redirection_url='+redirection_url+'&client_id='+client_id+'&sitename='+sitename+'&client_secret='+client_secret
+#===========================这里修改response_type=========================
+        url = 'http://localhost:8000/auth2/s?client_secret='+str(client_secret)+'&response_type='+'code'+'&redirection_url='+redirection_url+'&client_id='+client_id+'&sitename='+sitename+'&client_secret='+client_secret
         return redirect(url+"&state="+state)#向服务器传code和secret，用hs256加密
     
 def token_get_success(request):
@@ -60,8 +61,16 @@ def token_get_success(request):
         if request.GET['state'] != state_tmp:
             return HttpResponse("state不匹配，可能是csrf攻击")
         else:
-            decoded_ID_token = jwt.decode(request.GET['ID_token'],request.GET['ID_token_key'],algorithms=['HS256'])
-            return HttpResponse("access_token="+request.GET['access_token']+'\nrefresh_token='+request.GET['refresh_token']+'\nID_token='+request.GET['ID_token']+'\nID_token_key='+request.GET['ID_token_key']+'\niss='+request.GET['iss']+'\nDecoded_ID_token='+str(decoded_ID_token))
+            decoded_ID_token = None
+            if request.GET['ID_token'] == 'None':
+                pass
+            else:
+                decoded_ID_token = jwt.decode(request.GET['ID_token'],request.GET['ID_token_key'],algorithms=['HS256'])
+                text = "access_token="+request.GET['access_token']+'<br>refresh_token='+request.GET['refresh_token']+'<br>ID_token='+request.GET['ID_token']+'<br>ID_token_key='+request.GET['ID_token_key']+'<br>iss='+request.GET['iss']+'<br>Decoded_ID_token='+str(decoded_ID_token)
+                text += "<br><a href=http://localhost:8080/ID_token_request/s?client_id=111222&access_token="+ request.GET['access_token'] +'>用access_token访问数据</a><br>'
+                text += "<a href=http://localhost:8080/refresh_access_token/s?client_id=111222&scopes=openid%20profile%20email&refresh_token="+request.GET['refresh_token']+'>获取新的access_token</a>'
+                
+            return HttpResponse(text)
     else:
         HttpResponse("使用GET方法")
         
@@ -93,17 +102,18 @@ def ID_token_responded(request):
 def refresh_access_token(request):
     global state_tmp
     if request.method == 'GET':
-        '''传入client_id,refresh_token'''
+        '''传入client_id,refresh_token,scopes'''
         redirection_url = 'http://localhost:8080/'
         client_id = request.GET['client_id']
         refresh_token = request.GET['refresh_token']
         client_secret = rand_gen()
+        scopes = request.GET['scopes']
         payload = {
             'client_id':client_id,
         }
         code = jwt.encode(payload,client_secret,algorithm='HS256')
         state_tmp = state_gen()
-        url = 'http://localhost:8000/renew_access_token/s?code='+code+'&redirection_url='+redirection_url+'&refresh_token='+refresh_token+'&client_secret='+client_secret+'&state='+state_tmp
+        url = 'http://localhost:8000/renew_access_token/s?code='+code+'&scopes='+scopes+'&redirection_url='+redirection_url+'&refresh_token='+refresh_token+'&client_secret='+client_secret
         return redirect(url+'&state='+state_tmp,method='GET')
     else:
         return HttpResponse("Use GET")
