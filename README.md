@@ -20,7 +20,6 @@
 （另：在这之前我的redirection_url都是直接指向client域名下面的某一个地址，直到现在才知道原来redirection_url不应该分那么细）  
 实现了ID_token的颁发  
 实现了用户密码的加密存储，增加了说明文档（.well-known/openid-configuration 处访问）  
-重定向的状态码改成了301，方便client收到请求之后跳转到自己的路由  
 # Day5
 实现了番剧管理的功能  
 支持模糊搜索  
